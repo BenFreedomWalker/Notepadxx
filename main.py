@@ -212,6 +212,7 @@ class LineNumbers(tk.Canvas):
     def __init__(self, master, text_widget: tk.Text = None, **kwargs):
         super().__init__(master, width=48, highlightthickness=0, **kwargs)
         self.text = text_widget
+        self.fg_color = "#858585"  # default; updated by theme
         self.bind("<Button-1>", self._on_click)
         self._after_id = None
         if text_widget is not None:
@@ -255,7 +256,7 @@ class LineNumbers(tk.Canvas):
             linenum = str(i).split(".")[0]
             self.create_text(
                 40, y, anchor="ne", text=linenum,
-                fill=self["fg"] if "fg" in self.keys() else "#858585",
+                fill=self.fg_color,
                 font=self.text["font"],
             )
             if self.text.compare(i, ">=", last):
@@ -543,8 +544,7 @@ class Notepadxx(tk.Tk):
             selectforeground=theme["selectfg"],
         )
         self.line_numbers.configure(bg=theme["linenum_bg"])
-        # Store fg for redraw
-        self.line_numbers["fg"] = theme["linenum_fg"]
+        self.line_numbers.fg_color = theme["linenum_fg"]
 
         self.term_output.configure(
             bg=theme["terminal_bg"],

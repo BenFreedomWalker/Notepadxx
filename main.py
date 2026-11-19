@@ -209,19 +209,26 @@ EXT_TO_LANG = {
 # Line Numbers Canvas
 # ---------------------------------------------------------------------------
 class LineNumbers(tk.Canvas):
-    def __init__(self, master, text_widget: tk.Text, **kwargs):
+    def __init__(self, master, text_widget: tk.Text = None, **kwargs):
         super().__init__(master, width=48, highlightthickness=0, **kwargs)
         self.text = text_widget
         self.bind("<Button-1>", self._on_click)
-        self.text.bind("<KeyRelease>", self._schedule_redraw)
-        self.text.bind("<ButtonRelease-1>", self._schedule_redraw)
-        self.text.bind("<MouseWheel>", self._schedule_redraw)
-        self.text.bind("<Configure>", self._schedule_redraw)
-        self.text.bind("<<Modified>>", self._on_modified)
         self._after_id = None
+        if text_widget is not None:
+            self.attach(text_widget)
+
+    def attach(self, text_widget: tk.Text):
+        """Bind to a Text widget (can be called after construction)."""
+        self.text = text_widget
+        self.text.bind("<KeyRelease>", self._schedule_redraw, add="+")
+        self.text.bind("<ButtonRelease-1>", self._schedule_redraw, add="+")
+        self.text.bind("<MouseWheel>", self._schedule_redraw, add="+")
+        self.text.bind("<Configure>", self._schedule_redraw, add="+")
+        self.text.bind("<<Modified>>", self._on_modified, add="+")
 
     def _on_modified(self, event=None):
-        self.text.edit_modified(False)
+        if self.text:
+            self.text.edit_modified(False)
         self._schedule_redraw()
 
     def _schedule_redraw(self, event=None):
@@ -231,6 +238,8 @@ class LineNumbers(tk.Canvas):
 
     def redraw(self, event=None):
         self.delete("all")
+        if self.text is None:
+            return
         try:
             first = self.text.index("@0,0")
             last = self.text.index(f"@0,{self.winfo_height()}")
@@ -254,6 +263,8 @@ class LineNumbers(tk.Canvas):
             i = self.text.index(f"{i}+1line")
 
     def _on_click(self, event):
+        if self.text is None:
+            return
         # Jump cursor to that line
         y = event.y
         index = self.text.index(f"@0,{y}")
@@ -422,7 +433,7 @@ class Notepadxx(tk.Tk):
         editor_frame = ttk.Frame(self.vert_paned)
         self.vert_paned.add(editor_frame, weight=4)
 
-        self.line_numbers = LineNumbers(editor_frame, None)  # placeholder, set later
+        self.line_numbers = LineNumbers(editor_frame)  # text attached after creation
         self.line_numbers.pack(side=tk.LEFT, fill=tk.Y)
 
         text_frame = ttk.Frame(editor_frame)
@@ -444,7 +455,7 @@ class Notepadxx(tk.Tk):
             borderwidth=0,
             highlightthickness=0,
         )
-        self.line_numbers.text = self.text  # link
+        self.line_numbers.attach(self.text)
 
         self.v_scroll.config(command=self._on_text_scroll)
         self.h_scroll.config(command=self.text.xview)
